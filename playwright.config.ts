@@ -20,6 +20,7 @@ export default defineConfig({
     ['html', { open: 'never' }],
     ['json', { outputFile: 'test-data/test-results.json' }],
     ['list'],
+    ['./src/reporters/ecms-dashboard-reporter.ts'],
   ],
   timeout: 60_000,
   expect: {
