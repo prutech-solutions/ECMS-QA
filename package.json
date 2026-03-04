@@ -1,0 +1,30 @@
+{
+  "name": "salesforce-qa-testing",
+  "version": "1.0.0",
+  "description": "Reusable Playwright-based QA testing framework for Salesforce",
+  "scripts": {
+    "auth": "npx tsx scripts/auth-interactive.ts",
+    "test": "npx playwright test",
+    "test:smoke": "npx playwright test --project=smoke",
+    "test:regression": "npx playwright test --project=regression",
+    "test:visual": "npx playwright test --project=visual",
+    "test:sandbox": "SF_ENV=sandbox npx playwright test",
+    "test:dev": "SF_ENV=dev npx playwright test",
+    "test:prod": "SF_ENV=prod npx playwright test",
+    "test:document": "CAPTURE_DOCS=true npx playwright test --workers=1; python3 docs/scripts/generate-reports.py",
+    "test:headed": "npx playwright test --headed",
+    "test:debug": "npx playwright test --debug",
+    "test:ui": "npx playwright test --ui",
+    "report": "npx playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.50.0",
+    "@types/node": "^25.3.2",
+    "dotenv": "^16.4.7",
+    "tsx": "^4.21.0",
+    "typescript": "^5.7.0"
+  },
+  "optionalDependencies": {
+    "jsforce": "^3.6.0"
+  }
+}

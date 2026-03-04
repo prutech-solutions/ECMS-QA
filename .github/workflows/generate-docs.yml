@@ -1,0 +1,49 @@
+name: Generate Documentation
+
+on:
+  workflow_dispatch:
+    inputs:
+      format:
+        description: 'Output format'
+        required: false
+        default: 'html'
+        type: choice
+        options:
+          - html
+          - pdf
+
+env:
+  SF_BASE_URL: ${{ secrets.SF_BASE_URL }}
+  SF_LOGIN_URL: ${{ secrets.SF_LOGIN_URL }}
+  SF_SESSION_ID: ${{ secrets.SF_SESSION_ID }}
+  CAPTURE_DOCS: 'true'
+
+jobs:
+  generate-docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: quarto-dev/quarto-actions/setup@v2
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test --project=setup
+      - run: npx playwright test --workers=1
+      - run: python docs/scripts/generate-reports.py --format ${{ inputs.format || 'html' }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qa-documentation
+          path: docs/output/
+          retention-days: 90
+      - uses: actions/upload-artifact@v4
+        with:
+          name: procedure-screenshots
+          path: screenshots/
+          retention-days: 90

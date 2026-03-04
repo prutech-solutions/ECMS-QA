@@ -1,0 +1,35 @@
+name: CI - Smoke Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  SF_BASE_URL: ${{ secrets.SF_BASE_URL }}
+  SF_LOGIN_URL: ${{ secrets.SF_LOGIN_URL }}
+  SF_SESSION_ID: ${{ secrets.SF_SESSION_ID }}
+
+jobs:
+  smoke-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test --project=setup
+      - run: npx playwright test --project=smoke --workers=1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-test-report
+          path: |
+            playwright-report/
+            test-data/test-results.json
+          retention-days: 14

@@ -1,0 +1,47 @@
+name: Regression - Nightly
+
+on:
+  schedule:
+    - cron: '0 2 * * 1-5'  # Mon-Fri 2:00 AM UTC
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Salesforce environment'
+        required: false
+        default: ''
+        type: string
+
+env:
+  SF_ENV: ${{ inputs.environment || '' }}
+  SF_BASE_URL: ${{ secrets.SF_BASE_URL }}
+  SF_LOGIN_URL: ${{ secrets.SF_LOGIN_URL }}
+  SF_SESSION_ID: ${{ secrets.SF_SESSION_ID }}
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test --project=setup
+      - run: npx playwright test --project=regression --workers=20
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: regression-test-report
+          path: |
+            playwright-report/
+            test-data/test-results.json
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: failure-screenshots
+          path: test-results/
+          retention-days: 14

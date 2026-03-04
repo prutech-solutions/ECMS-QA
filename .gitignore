@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+dist/
+
+# Environment files
+.env
+.env.sandbox
+.env.dev
+.env.prod
+.env.local
+
+# Playwright
+playwright/.auth/
+playwright-report/
+blob-report/
+test-results/
+
+# Screenshots and test data (generated during runs)
+screenshots/*
+!screenshots/.gitkeep
+test-data/*
+!test-data/.gitkeep
+
+# Quarto output
+docs/output/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
