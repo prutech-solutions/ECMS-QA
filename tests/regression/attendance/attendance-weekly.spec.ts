@@ -1,100 +1,75 @@
 import { test, expect } from '../../../src/fixtures/salesforce.fixture.js';
+import type { Page } from '@playwright/test';
+import type { BasePage } from '../../../src/pages/base.page.js';
+import type { ListViewPage } from '../../../src/pages/list-view.page.js';
+import type { DocCapture } from '../../../src/helpers/doc-capture.js';
+
+/** Shared vendor login: navigate to Contact, search, and log in to Experience portal */
+async function loginAsVendor(
+  page: Page, basePage: BasePage, listView: ListViewPage, docCapture: DocCapture,
+) {
+  await basePage.navigateToObject('Contact');
+  await page.getByText('Recently Viewed').click();
+  await page.getByText('All Contacts').click();
+  await listView.waitForListToLoad();
+  await listView.searchList('Jennifer Winget');
+  await expect(page.getByRole('link', { name: 'Jennifer Winget' })).toBeVisible();
+  await docCapture.step('Searched for Jennifer Winget in All Contacts');
+
+  await page.getByRole('link', { name: 'Jennifer Winget' }).click();
+  await basePage.waitForLightningReady();
+  await expect(page.locator('records-lwc-highlights-panel')).toBeVisible();
+  await docCapture.step('Opened Jennifer Winget contact record');
+
+  await page.getByRole('button', { name: /Log in to Experience as User/i }).click();
+  await page.waitForURL(/.*\/s\/.*/i, { timeout: 30_000 });
+  await page.waitForLoadState('domcontentloaded');
+  await expect(page.getByText('Jennifer Winget')).toBeVisible();
+  await docCapture.step('Logged into ECMS portal as Vendor Admin');
+}
 
 /**
  * Attendance — Weekly Attendance CRUD
- * Persona: Vendor Admin (Ravi Krishna, Bunny)
- * Portal-based tests via Experience Cloud
+ * Persona: Vendor Admin (logs in as Jennifer Winget via Experience Cloud)
  */
 test.describe('Attendance - Weekly attendance management', () => {
+
   test('TC-ATT-W1: Vendor Admin can create weekly attendance for enrolled student', async ({
-    basePage, recordForm, toast, docCapture,
+    page, basePage, listView, docCapture,
   }) => {
-    // User: Ravi Krishna (Vendor Admin)
-    await test.step('Login to ECMS portal as Vendor', async () => {
-      // TODO: Switch to vendor-admin persona / portal login
-      await docCapture.step('Logged into ECMS portal as Vendor Admin');
+    await test.step('Log in to Experience as Vendor User', async () => {
+      await loginAsVendor(page, basePage, listView, docCapture);
     });
 
-    await test.step('Navigate to Attendance → Weekly Attendance', async () => {
-      // TODO: Navigate via portal tab to Weekly Attendance
-      await docCapture.step('Navigated to Weekly Attendance');
+    await test.step('Navigate to Attendance on portal', async () => {
+      await page.getByRole('button', { name: 'Attendance' }).click();
+      await page.waitForLoadState('domcontentloaded');
+      await docCapture.step('Opened Attendance menu on portal');
     });
 
-    await test.step('Select EBC Site and class', async () => {
-      // TODO: Select site, select Junior KG Class
-      await docCapture.step('Selected EBC Site and class');
-    });
-
-    await test.step('Select student and week', async () => {
-      // TODO: Select Student name → Select Week
-      await docCapture.step('Student and week selected');
-    });
-
-    await test.step('Enter attendance status and check-in/check-out times', async () => {
-      // TODO: Enter Status as Present, Add 1st Check In and Check Out time
-      await docCapture.step('Attendance status and times entered');
-    });
-
-    await test.step('Save weekly attendance', async () => {
-      // TODO: Save the attendance record
-      await docCapture.step('Weekly attendance saved');
-    });
+    throw new Error('TODO: Record weekly attendance creation steps via Playwright codegen');
   });
 
   test('TC-ATT-W2: Vendor Admin can create weekly attendance with 2nd Check In/Out', async ({
-    basePage, docCapture,
+    page, basePage, listView, docCapture,
   }) => {
-    // User: Ravi Krishna
-    await test.step('Login to ECMS portal as Vendor', async () => {
-      await docCapture.step('Logged into ECMS portal');
+    await test.step('Log in to Experience as Vendor User', async () => {
+      await loginAsVendor(page, basePage, listView, docCapture);
     });
 
-    await test.step('Navigate to Weekly Attendance', async () => {
-      await docCapture.step('Navigated to Weekly Attendance');
-    });
-
-    await test.step('Enter 2nd Check In and Check Out timings', async () => {
-      // TODO: Fill 2nd check-in/out fields
-      await docCapture.step('2nd Check In/Out times entered');
-    });
-
-    await test.step('Save and verify record', async () => {
-      // TODO: Verify 2nd check-in/out times saved successfully
-      await docCapture.step('2nd Check In/Out attendance saved');
-    });
+    throw new Error('TODO: Record 2nd check-in/out steps via Playwright codegen');
   });
 
   test('TC-ATT-W10: Verify 2nd Check In/Out fields displayed in backend Attendance', async ({
-    basePage, recordDetail, docCapture,
+    page, basePage, docCapture,
   }) => {
-    await test.step('Navigate to Attendance record in SF backend', async () => {
-      // TODO: Navigate to the attendance record in internal SF
-      await docCapture.step('Attendance record opened in SF backend');
+    // This test verifies backend SF fields — no portal login needed
+    await test.step('Navigate to Attendance object in SF backend', async () => {
+      await basePage.navigateToObject('Attendance__c');
+      await basePage.waitForLightningReady();
+      await docCapture.step('Navigated to Attendance object in backend');
     });
 
-    await test.step('Verify 2nd Check In/Out fields are displayed', async () => {
-      // TODO: Verify field visibility on record detail
-      await docCapture.step('2nd Check In/Out fields displayed in backend');
-    });
-
-    await test.step('Verify field values match portal entry', async () => {
-      // TODO: Cross-check values between portal and backend
-      await docCapture.step('Backend field values match portal entry');
-    });
-
-    await test.step('Verify attendance record shows in related list', async () => {
-      // TODO: Check attendance related list on student record
-      await docCapture.step('Attendance record in related list verified');
-    });
-
-    await test.step('Verify weekly summary calculations', async () => {
-      // TODO: Verify summary totals
-      await docCapture.step('Weekly summary calculations verified');
-    });
-
-    await test.step('Verify absence tracking', async () => {
-      // TODO: Verify absence counts
-      await docCapture.step('Absence tracking verified');
-    });
+    throw new Error('TODO: Record backend attendance field verification steps via Playwright codegen');
   });
 });

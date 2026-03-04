@@ -1,117 +1,120 @@
 import { test, expect } from '../../../src/fixtures/salesforce.fixture.js';
+import type { Page } from '@playwright/test';
+import type { BasePage } from '../../../src/pages/base.page.js';
+import type { ListViewPage } from '../../../src/pages/list-view.page.js';
+import type { DocCapture } from '../../../src/helpers/doc-capture.js';
+
+/** Shared vendor login: navigate to Contact, search, and log in to Experience portal */
+async function loginAsVendor(
+  page: Page, basePage: BasePage, listView: ListViewPage, docCapture: DocCapture,
+) {
+  await basePage.navigateToObject('Contact');
+  await page.getByText('Recently Viewed').click();
+  await page.getByText('All Contacts').click();
+  await listView.waitForListToLoad();
+  await listView.searchList('Jennifer Winget');
+  await expect(page.getByRole('link', { name: 'Jennifer Winget' })).toBeVisible();
+  await docCapture.step('Searched for Jennifer Winget in All Contacts');
+
+  await page.getByRole('link', { name: 'Jennifer Winget' }).click();
+  await basePage.waitForLightningReady();
+  await expect(page.locator('records-lwc-highlights-panel')).toBeVisible();
+  await docCapture.step('Opened Jennifer Winget contact record');
+
+  await page.getByRole('button', { name: /Log in to Experience as User/i }).click();
+  await page.waitForURL(/.*\/s\/.*/i, { timeout: 30_000 });
+  await page.waitForLoadState('domcontentloaded');
+  await expect(page.getByText('Jennifer Winget')).toBeVisible();
+  await docCapture.step('Logged into ECMS portal as Vendor Admin');
+}
 
 /**
  * Attendance — Daily Attendance CRUD
- * Persona: Vendor Admin (Ravi Krishna)
+ * Persona: Vendor Admin (logs in as Jennifer Winget via Experience Cloud)
  */
 test.describe('Attendance - Daily attendance management', () => {
+
   test('TC-ATT-D1: Vendor Admin can create daily attendance for enrolled student', async ({
-    basePage, recordForm, toast, docCapture,
+    page, basePage, listView, toast, docCapture,
   }) => {
-    // User: Ravi Krishna (Vendor Admin)
-    await test.step('Login to ECMS portal as Vendor', async () => {
-      // TODO: Switch to vendor-admin persona
-      await docCapture.step('Logged into ECMS portal as Vendor Admin');
+    await test.step('Log in to Experience as Vendor User', async () => {
+      await loginAsVendor(page, basePage, listView, docCapture);
     });
 
-    await test.step('Navigate to Attendance → Daily Attendance', async () => {
-      // TODO: Navigate via portal tab
-      await docCapture.step('Navigated to Daily Attendance');
+    await test.step('Navigate to Attendance → Weekly Attendance', async () => {
+      await page.getByRole('button', { name: 'Attendance' }).click();
+      await page.getByRole('link', { name: 'Weekly Attendance' }).click();
+      await page.waitForLoadState('domcontentloaded');
+      await docCapture.step('Navigated to Weekly Attendance page');
     });
 
-    await test.step('Select site, class, and student', async () => {
-      // TODO: Select EBC Site, class, student
-      await docCapture.step('Site, class, and student selected');
+    await test.step('Select EBC Site', async () => {
+      // Sites table shows available sites — click on the site name
+      await page.getByRole('button', { name: 'NY-S' }).click();
+      await page.waitForLoadState('domcontentloaded');
+      await docCapture.step('Selected NY-S (EBC Site)');
     });
 
-    await test.step('Enter daily attendance status and times', async () => {
-      // TODO: Mark Present/Absent, enter check-in/check-out
-      await docCapture.step('Daily attendance entry completed');
+    await test.step('Select JuniorKG Class', async () => {
+      await expect(page.getByRole('heading', { name: 'Classes' })).toBeVisible();
+      await page.getByRole('button', { name: 'JuniorKG' }).click();
+      await page.waitForLoadState('domcontentloaded');
+      await docCapture.step('Selected JuniorKG Class');
     });
 
-    await test.step('Save daily attendance', async () => {
-      // TODO: Save and verify success
-      await docCapture.step('Daily attendance saved successfully');
+    await test.step('Select Student', async () => {
+      await expect(page.getByRole('heading', { name: 'Students' })).toBeVisible();
+      // Click first student in the table
+      await page.locator('table[role="grid"] tbody tr').first().getByRole('button').first().click();
+      await page.waitForLoadState('domcontentloaded');
+      await docCapture.step('Student selected');
     });
 
-    await test.step('Verify record is created', async () => {
-      // TODO: Verify the daily attendance record
-      await docCapture.step('Daily attendance record verified');
+    await test.step('Enter attendance status as Present', async () => {
+      await page.getByText('Present').first().click();
+      await docCapture.step('Status set to Present');
+    });
+
+    await test.step('Add 1st Check In and Check Out timings', async () => {
+      await page.getByLabel(/Check.?In/i).first().fill('09:00');
+      await page.getByLabel(/Check.?Out/i).first().fill('17:00');
+      await docCapture.step('Check In and Check Out times entered');
+    });
+
+    await test.step('Save attendance record', async () => {
+      await page.getByRole('button', { name: /Save/i }).click();
+      await page.waitForLoadState('domcontentloaded');
+      await docCapture.step('Attendance record saved');
     });
   });
 
   test('TC-ATT-D2: Daily attendance should not allow before Admission Date', async ({
-    basePage, toast, docCapture,
+    page, basePage, listView, docCapture,
   }) => {
-    // User: Ravi Krishna
-    await test.step('Login and navigate to Daily Attendance', async () => {
-      await docCapture.step('Navigated to Daily Attendance');
+    await test.step('Log in to Experience as Vendor User', async () => {
+      await loginAsVendor(page, basePage, listView, docCapture);
     });
 
-    await test.step('Select student with known Admission Date', async () => {
-      // TODO: Select a student whose Admission Date is known
-      await docCapture.step('Student selected');
-    });
-
-    await test.step('Attempt to enter attendance before Admission Date', async () => {
-      // TODO: Try to set attendance date before student admission date
-      await docCapture.step('Attempted pre-admission attendance entry');
-    });
-
-    await test.step('Verify system blocks the entry', async () => {
-      // TODO: Verify error/validation message appears
-      await docCapture.step('System correctly blocked pre-admission attendance');
-    });
+    throw new Error('TODO: Record pre-admission date validation steps via Playwright codegen');
   });
 
   test('TC-ATT-D3: Attendance Date should not be before Student DOB', async ({
-    basePage, toast, docCapture,
+    page, basePage, listView, docCapture,
   }) => {
-    await test.step('Navigate to Daily Attendance', async () => {
-      await docCapture.step('Navigated to Daily Attendance');
+    await test.step('Log in to Experience as Vendor User', async () => {
+      await loginAsVendor(page, basePage, listView, docCapture);
     });
 
-    await test.step('Select student and attempt date before DOB', async () => {
-      // TODO: Attempt to set attendance date before student DOB
-      await docCapture.step('Attempted attendance before DOB');
-    });
-
-    await test.step('Verify validation prevents saving', async () => {
-      // TODO: Verify error message
-      await docCapture.step('System blocked attendance before DOB');
-    });
-
-    await test.step('Correct the date and save successfully', async () => {
-      // TODO: Set valid date and save
-      await docCapture.step('Attendance saved with valid date');
-    });
-
-    await test.step('Verify corrected record', async () => {
-      // TODO: Verify the record
-      await docCapture.step('Corrected attendance record verified');
-    });
+    throw new Error('TODO: Record DOB validation steps via Playwright codegen');
   });
 
   test('TC-ATT-D4: Verify record should not save if no status is given', async ({
-    basePage, toast, docCapture,
+    page, basePage, listView, docCapture,
   }) => {
-    await test.step('Navigate to attendance entry form', async () => {
-      await docCapture.step('Attendance entry form opened');
+    await test.step('Log in to Experience as Vendor User', async () => {
+      await loginAsVendor(page, basePage, listView, docCapture);
     });
 
-    await test.step('Fill attendance without selecting a status', async () => {
-      // TODO: Leave status field empty
-      await docCapture.step('Attendance fields filled without status');
-    });
-
-    await test.step('Attempt to save', async () => {
-      // TODO: Click save
-      await docCapture.step('Save attempted without status');
-    });
-
-    await test.step('Verify error prevents save', async () => {
-      // TODO: Verify validation error for missing status
-      await docCapture.step('System blocked save without status');
-    });
+    throw new Error('TODO: Record missing-status validation steps via Playwright codegen');
   });
 });
